@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Poker GTO & AI — Research History</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sunflower:wght@300;500;700&family=Nanum+Gothic:wght@400;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --foundation: #e94560;
+    --early: #f5a623;
+    --alberta: #00b4d8;
+    --cmu: #66ff66;
+    --modern: #c77dff;
+    --bg: #08080f;
+    --text: #cccccc;
+    --muted: #666;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Nanum Gothic', sans-serif;
+    min-height: 100vh;
+    padding: 64px 40px 100px;
+  }
+
+  /* ── Header ── */
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+  .header-sub {
+    font-size: 13px;
+    letter-spacing: 6px;
+    color: var(--muted);
+    margin-bottom: 14px;
+    font-weight: 300;
+  }
+  .header-title {
+    font-family: 'Sunflower', sans-serif;
+    font-size: 54px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 5px;
+    line-height: 1.15;
+  }
+  .header-title span { color: var(--alberta); }
+  .header-desc {
+    font-size: 14px;
+    color: #555;
+    letter-spacing: 7px;
+    margin-top: 12px;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 24px;
+    margin-top: 36px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 13px;
+    color: #888;
+    letter-spacing: 0.5px;
+    font-weight: 400;
+  }
+  .legend-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Filters ── */
+  .filters {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 24px;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    padding: 7px 24px;
+    border-radius: 24px;
+    font-size: 13px;
+    font-family: 'Nanum Gothic', sans-serif;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    border: 1px solid #333;
+    background: transparent;
+    color: #666;
+  }
+  .filter-btn:hover { border-color: #777; color: #bbb; }
+  .filter-btn.active-all  { background: #222; border-color: #aaa; color: #fff; }
+  .filter-btn.active-gto  { background: rgba(0,180,216,0.12);  border-color: var(--alberta); color: var(--alberta); }
+  .filter-btn.active-bot  { background: rgba(102,255,102,0.10); border-color: var(--cmu);     color: var(--cmu); }
+  .filter-btn.active-algo { background: rgba(199,125,255,0.12); border-color: var(--modern);  color: var(--modern); }
+
+  /* ── Timeline ── */
+  .timeline {
+    max-width: 960px;
+    margin: 0 auto;
+    position: relative;
+  }
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 112px;
+    top: 0; bottom: 0;
+    width: 1px;
+    background: linear-gradient(to bottom, transparent, #252535 4%, #252535 96%, transparent);
+  }
+
+  /* ── Event row ── */
+  .event {
+    display: flex;
+    margin-bottom: 4px;
+    cursor: pointer;
+  }
+  .event.hidden { display: none; }
+
+  .event-year {
+    width: 104px;
+    flex-shrink: 0;
+    text-align: right;
+    padding-top: 20px;
+    font-size: 14px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    transition: color 0.2s;
+    font-weight: 700;
+  }
+
+  .event-dot-col {
+    width: 22px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    padding-top: 25px;
+  }
+  .event-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    transition: all 0.25s;
+  }
+
+  .event-content {
+    flex: 1;
+    padding-left: 24px;
+    padding-bottom: 4px;
+  }
+  .event-card {
+    border-radius: 10px;
+    padding: 14px 20px;
+    border: 1px solid transparent;
+    transition: all 0.25s;
+    background: transparent;
+  }
+  .event-card:hover {
+    background: rgba(255,255,255,0.02);
+    border-color: #1e1e2e;
+  }
+
+  .event-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: #bbb;
+    margin-bottom: 5px;
+    transition: color 0.2s;
+    font-family: 'Sunflower', sans-serif;
+    letter-spacing: 0.3px;
+  }
+  .event-subtitle {
+    font-size: 13px;
+    color: #555;
+    margin-bottom: 10px;
+    transition: color 0.2s;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .tags {
+    display: flex;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .tag {
+    font-size: 11px;
+    padding: 3px 12px;
+    border-radius: 12px;
+    letter-spacing: 1px;
+  }
+  .tag-gto  { background: rgba(0,180,216,0.12);  color: var(--alberta); border: 1px solid rgba(0,180,216,0.25); }
+  .tag-bot  { background: rgba(102,255,102,0.10); color: var(--cmu);     border: 1px solid rgba(102,255,102,0.2); }
+  .tag-algo { background: rgba(199,125,255,0.12); color: var(--modern);  border: 1px solid rgba(199,125,255,0.25); }
+
+  .event-detail {
+    margin-top: 14px;
+    padding-top: 14px;
+    font-size: 14px;
+    color: #999;
+    line-height: 2.0;
+    display: none;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    font-weight: 400;
+    word-break: keep-all;
+  }
+
+  /* ── Open state ── */
+  .event.open .event-card { padding: 16px 22px; border-color: rgba(255,255,255,0.08); }
+  .event.open .event-year  { font-weight: bold; }
+  .event.open .event-title { color: #fff; }
+  .event.open .event-detail { display: block; }
+  .event.open .event-dot { width: 14px; height: 14px; margin-top: -2px; }
+
+  /* era colours — dot */
+  .era-foundation .event-dot { background: var(--foundation); }
+  .era-early      .event-dot { background: var(--early); }
+  .era-alberta    .event-dot { background: var(--alberta); }
+  .era-cmu        .event-dot { background: var(--cmu); }
+  .era-modern     .event-dot { background: var(--modern); }
+
+  /* era colours — open card */
+  .event.open.era-foundation .event-year     { color: var(--foundation); }
+  .event.open.era-foundation .event-card     { background: rgba(233,69,96,0.05);   border-color: rgba(233,69,96,0.3); }
+  .event.open.era-foundation .event-subtitle { color: var(--foundation); }
+  .event.open.era-foundation .event-dot      { box-shadow: 0 0 16px var(--foundation); }
+  .event.open.era-foundation .event-detail   { border-color: rgba(233,69,96,0.12); }
+
+  .event.open.era-early .event-year     { color: var(--early); }
+  .event.open.era-early .event-card     { background: rgba(245,166,35,0.05);  border-color: rgba(245,166,35,0.3); }
+  .event.open.era-early .event-subtitle { color: var(--early); }
+  .event.open.era-early .event-dot      { box-shadow: 0 0 16px var(--early); }
+  .event.open.era-early .event-detail   { border-color: rgba(245,166,35,0.12); }
+
+  .event.open.era-alberta .event-year     { color: var(--alberta); }
+  .event.open.era-alberta .event-card     { background: rgba(0,180,216,0.05);   border-color: rgba(0,180,216,0.3); }
+  .event.open.era-alberta .event-subtitle { color: var(--alberta); }
+  .event.open.era-alberta .event-dot      { box-shadow: 0 0 16px var(--alberta); }
+  .event.open.era-alberta .event-detail   { border-color: rgba(0,180,216,0.12); }
+
+  .event.open.era-cmu .event-year     { color: var(--cmu); }
+  .event.open.era-cmu .event-card     { background: rgba(102,255,102,0.04);  border-color: rgba(102,255,102,0.3); }
+  .event.open.era-cmu .event-subtitle { color: var(--cmu); }
+  .event.open.era-cmu .event-dot      { box-shadow: 0 0 16px var(--cmu); }
+  .event.open.era-cmu .event-detail   { border-color: rgba(102,255,102,0.1); }
+
+  .event.open.era-modern .event-year     { color: var(--modern); }
+  .event.open.era-modern .event-card     { background: rgba(199,125,255,0.05); border-color: rgba(199,125,255,0.3); }
+  .event.open.era-modern .event-subtitle { color: var(--modern); }
+  .event.open.era-modern .event-dot      { box-shadow: 0 0 16px var(--modern); }
+  .event.open.era-modern .event-detail   { border-color: rgba(199,125,255,0.12); }
+
+  .footer {
+    text-align: center;
+    margin-top: 56px;
+    font-size: 11px;
+    color: #222;
+    letter-spacing: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Header ── -->
+<div class="header">
+  <div class="header-sub">1944 — PRESENT</div>
+  <div class="header-title">POKER <span>GTO</span> &amp; AI</div>
+  <div class="header-desc">RESEARCH HISTORY TIMELINE</div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--foundation)"></div>이론 기초</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--early)"></div>초기 시도</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--alberta)"></div>앨버타 시대</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--cmu)"></div>CFR·CMU 시대</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--modern)"></div>상용화 시대</div>
+  </div>
+
+  <div class="filters">
+    <button class="filter-btn active-all" onclick="setFilter('all',this)">전체</button>
+    <button class="filter-btn" onclick="setFilter('GTO이론',this)">GTO이론</button>
+    <button class="filter-btn" onclick="setFilter('봇연구',this)">봇연구</button>
+    <button class="filter-btn" onclick="setFilter('알고리즘',this)">알고리즘</button>
+  </div>
+</div>
+
+<!-- ── Timeline ── -->
+<div class="timeline">
+
+  <div class="event era-foundation" data-tags="GTO이론" onclick="toggle(this)">
+    <div class="event-year">1944</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">폰 노이만 &amp; 모르겐슈테른</div>
+      <div class="event-subtitle">Theory of Games and Economic Behavior</div>
+      <div class="tags"><span class="tag tag-gto">GTO이론</span></div>
+      <div class="event-detail">블러핑의 수학적 구조를 최초로 형식화. 단순화된 2인 포커 모델(0~1 실수 카드, 1회 베팅)로 혼합 전략과 내쉬 균형의 필요성을 증명. 모든 포커 AI 연구의 이론적 뿌리. 텍사스 홀덤이 아닌 추상적 2인 카드 게임이 분석 대상.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-foundation" data-tags="GTO이론" onclick="toggle(this)">
+    <div class="event-year">1950s</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">존 내쉬 — Nash Equilibrium</div>
+      <div class="event-subtitle">내쉬 균형 이론 정립</div>
+      <div class="tags"><span class="tag tag-gto">GTO이론</span></div>
+      <div class="event-detail">비제로섬 게임으로 확장된 균형 이론. "어떤 플레이어도 전략을 바꿔 이득을 볼 수 없는 상태" = GTO의 직접적 수학 기반. 1994년 노벨 경제학상 수상. 폰 노이만이 씨앗을 심었다면 내쉬가 꽃을 피운 셈.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-early" data-tags="봇연구" onclick="toggle(this)">
+    <div class="event-year">1970s</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">Nicholas Findler</div>
+      <div class="event-subtitle">최초의 포커 프로그램</div>
+      <div class="tags"><span class="tag tag-bot">봇연구</span></div>
+      <div class="event-detail">5카드 드로우 포커를 대상으로 인간의 인지 과정을 컴퓨터로 모델링. 강한 플레이어 수준에는 미치지 못했으나 컴퓨터 포커 연구의 역사적 시작점.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-early" data-tags="봇연구" onclick="toggle(this)">
+    <div class="event-year">1984</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">Mike Caro — Orac</div>
+      <div class="event-subtitle">최초의 홀덤 봇 시도</div>
+      <div class="tags"><span class="tag tag-bot">봇연구</span></div>
+      <div class="event-detail">헤즈업 노리밋 홀덤 프로그램 Orac을 제작해 강한 인간 플레이어와 최초로 공식 대결. 통계적으로 유의미한 성과는 없었으나 실전 대결의 첫 사례.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-alberta" data-tags="GTO이론,봇연구" onclick="toggle(this)">
+    <div class="event-year">1995</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">Darse Billings 석사논문</div>
+      <div class="event-subtitle">앨버타 대학교 CPRG 설립</div>
+      <div class="tags"><span class="tag tag-gto">GTO이론</span><span class="tag tag-bot">봇연구</span></div>
+      <div class="event-detail">포커가 심리나 블러핑 같은 인간적 요소에 의존한다는 통념에 도전. 완벽한 포커는 확률과 전략 원리에 기반한다는 점을 학문적으로 제시. 앨버타 대학교 Computer Poker Research Group(CPRG) 설립의 씨앗.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-alberta" data-tags="봇연구" onclick="toggle(this)">
+    <div class="event-year">1997</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">Loki (앨버타 CPRG)</div>
+      <div class="event-subtitle">첫 GTO 기반 포커 봇</div>
+      <div class="tags"><span class="tag tag-bot">봇연구</span></div>
+      <div class="event-detail">앨버타 CPRG의 첫 번째 포커 봇. 핸드 강도와 상대 모델링 기반 휴리스틱 전략. IRC 포커에서 실전 테스트. GTO보다는 규칙 기반에 가까웠으나 이후 연구의 발판이 됨.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-alberta" data-tags="봇연구,알고리즘" onclick="toggle(this)">
+    <div class="event-year">1999</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">Poki + Cactus Kev 알고리즘</div>
+      <div class="event-subtitle">상대 모델링 강화 / 소수 핸드 이밸류에이터</div>
+      <div class="tags"><span class="tag tag-bot">봇연구</span><span class="tag tag-algo">알고리즘</span></div>
+      <div class="event-detail">Poki: Loki 후속작, 유효 핸드 강도를 입력받아 (폴드/콜/레이즈) 확률 트리플 출력. Poker Academy에 라이선스 판매. / Cactus Kev(Kevin Suffecool): 카드 랭크에 소수를 배정해 5장 곱으로 패를 유일하게 식별하는 핸드 이밸류에이터 개발. 산술의 기본 정리(소수 곱의 유일성) 활용.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-alberta" data-tags="GTO이론,알고리즘" onclick="toggle(this)">
+    <div class="event-year">2000</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">추상화 기법 (Shi &amp; Littman)</div>
+      <div class="event-subtitle">버킷 추상화 도입</div>
+      <div class="tags"><span class="tag tag-gto">GTO이론</span><span class="tag tag-algo">알고리즘</span></div>
+      <div class="event-detail">핸드와 베팅 사이즈를 버킷으로 묶는 추상화 기법 개발. 수십억 개의 게임 상태를 관리 가능한 크기로 압축. 이후 모든 GTO 솔버의 핵심 기술이 되는 개념.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-alberta" data-tags="GTO이론,봇연구" onclick="toggle(this)">
+    <div class="event-year">2003</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">GTO 최초 학술 논문 ★</div>
+      <div class="event-subtitle">Billings et al. — IJCAI</div>
+      <div class="tags"><span class="tag tag-gto">GTO이론</span><span class="tag tag-bot">봇연구</span></div>
+      <div class="event-detail">Approximating Game-Theoretic Optimal Strategies for Full-scale Poker. 추상화를 사용해 헤즈업 리밋 홀덤에서 GTO 전략을 근사. 게임 트리 10^6 규모 문제를 처음으로 다룬 역사적 논문. 빌 첸 책보다 3년 앞선 최초의 포커 GTO 학술 연구.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-alberta" data-tags="GTO이론,봇연구" onclick="toggle(this)">
+    <div class="event-year">2005</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">Gilpin &amp; Sandholm</div>
+      <div class="event-subtitle">Rhode Island Poker 완전 해결 (LP)</div>
+      <div class="tags"><span class="tag tag-gto">GTO이론</span><span class="tag tag-bot">봇연구</span></div>
+      <div class="event-detail">선형 프로그래밍(LP, Sequence Form)으로 단순화된 포커 변형인 Rhode Island Poker의 균형 전략을 완전히 계산. CMU의 Sandholm이 처음으로 포커 연구에 등장하는 시점.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-cmu" data-tags="GTO이론,봇연구" onclick="toggle(this)">
+    <div class="event-year">2006</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">ACPC 창설 + 빌 첸 책 출판</div>
+      <div class="event-subtitle">The Mathematics of Poker / 연간 컴퓨터 포커 대회</div>
+      <div class="tags"><span class="tag tag-gto">GTO이론</span><span class="tag tag-bot">봇연구</span></div>
+      <div class="event-detail">빌 첸 &amp; 앤컨먼의 The Mathematics of Poker 출판으로 GTO를 일반 플레이어에게 최초 대중화. 동시에 앨버타·CMU 공동으로 Annual Computer Poker Competition(ACPC) 창설, 전 세계 연구자 경쟁의 장 마련.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-cmu" data-tags="알고리즘" onclick="toggle(this)">
+    <div class="event-year">2007</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">CFR 알고리즘 탄생 ★★</div>
+      <div class="event-subtitle">Zinkevich et al. — 앨버타 대학교</div>
+      <div class="tags"><span class="tag tag-algo">알고리즘</span></div>
+      <div class="event-detail">Counterfactual Regret Minimization. "만약 다른 선택을 했다면 얼마나 나았을까?"를 반복 계산하며 내쉬 균형으로 수렴. 10^12 규모 게임 해결 가능. 현대 모든 포커 솔버의 핵심 엔진. 매 반복마다 전체 게임 트리를 탐색하는 구조.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-cmu" data-tags="알고리즘" onclick="toggle(this)">
+    <div class="event-year">2009</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">MCCFR 탄생 ★★</div>
+      <div class="event-subtitle">Lanctot et al. — 앨버타 대학교, NIPS</div>
+      <div class="tags"><span class="tag tag-algo">알고리즘</span></div>
+      <div class="event-detail">Monte Carlo CFR. 전체 게임 트리 대신 샘플링된 일부만 탐색하면서도 CFR과 동일하게 내쉬 균형으로 수렴함을 증명. Chance / External / Outcome Sampling 세 방식. CFR 대비 수백 배 효율화. 현대 상용 솔버의 실질적 엔진.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-cmu" data-tags="알고리즘" onclick="toggle(this)">
+    <div class="event-year">2014</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">CFR+ 알고리즘</div>
+      <div class="event-subtitle">Tammelin — 앨버타 대학교</div>
+      <div class="tags"><span class="tag tag-algo">알고리즘</span></div>
+      <div class="event-detail">음수 후회값을 0으로 클리핑하는 단순한 변형으로 MCCFR 대비 수렴 속도 10배 이상 개선. Cepheus 개발의 직접적 기반. 단순한 수정이지만 성능 향상이 극적이었던 사례.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-cmu" data-tags="봇연구" onclick="toggle(this)">
+    <div class="event-year">2015</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">Cepheus + Claudico</div>
+      <div class="event-subtitle">리밋 홀덤 완전 해결 / 인간에게 패배</div>
+      <div class="tags"><span class="tag tag-bot">봇연구</span></div>
+      <div class="event-detail">Cepheus(앨버타): CFR+를 사용해 헤즈업 리밋 텍사스 홀덤을 수학적으로 완전 해결. 정보집합 10^14 규모. 딜러가 게임당 0.088 빅블라인드 이점을 가짐을 증명. / Claudico(CMU Sandholm &amp; Noam Brown): 첫 노리밋 홀덤 봇, 프로 4명에게 패배.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-cmu" data-tags="봇연구" onclick="toggle(this)">
+    <div class="event-year">2017</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">Libratus (CMU) ★★★</div>
+      <div class="event-subtitle">헤즈업 노리밋 홀덤 최초 인간 격파</div>
+      <div class="tags"><span class="tag tag-bot">봇연구</span></div>
+      <div class="event-detail">Science 저널 게재(2018). 피츠버그 Rivers Casino 20일 12만 핸드. 147 mbb/hand 차이로 프로 4명 완파. 3단계 구조: 블루프린트 전략 + 실시간 서브게임 솔빙 + 자기개선 모듈. 전문 도메인 지식 없이 자가 학습으로만 달성.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-cmu" data-tags="봇연구" onclick="toggle(this)">
+    <div class="event-year">2019</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">Pluribus (CMU + Facebook AI) ★★★★</div>
+      <div class="event-subtitle">6인 멀티플레이어 인간 격파</div>
+      <div class="tags"><span class="tag tag-bot">봇연구</span></div>
+      <div class="event-detail">Science 표지 논문. 13명 챔피언 대상 1만 핸드 압도적 승리. 블루프린트 계산 비용 약 150달러(vs AlphaGo의 GPU 수백 대). Donk betting 전략 발견. 불완전 정보 다중 에이전트 AI의 이정표. 제한적 선견 탐색이 핵심 돌파구.</div>
+    </div></div>
+  </div>
+
+  <div class="event era-modern" data-tags="GTO이론,알고리즘" onclick="toggle(this)">
+    <div class="event-year">현재</div>
+    <div class="event-dot-col"><div class="event-dot"></div></div>
+    <div class="event-content"><div class="event-card">
+      <div class="event-title">상용 솔버 시대</div>
+      <div class="event-subtitle">PioSolver / GTO Wizard / Simple Postflop</div>
+      <div class="tags"><span class="tag tag-gto">GTO이론</span><span class="tag tag-algo">알고리즘</span></div>
+      <div class="event-detail">MCCFR·CFR+ 기반 상용 솔버 보급. 일반 플레이어도 GTO 학습 가능. 포커 전략의 패러다임 완전 전환. 수십 년간의 학술 연구 성과가 실전 플레이어의 손에 들어옴. AI 연구 성과의 현장 적용 사례로도 주목.</div>
+    </div></div>
+  </div>
+
+</div>
+
+<div class="footer">CLICK ANY ITEM TO EXPAND &nbsp;·&nbsp; POKER GTO &amp; AI RESEARCH HISTORY</div>
+
+<script>
+  function toggle(el) { el.classList.toggle('open'); }
+
+  function setFilter(tag, btn) {
+    document.querySelectorAll('.filter-btn').forEach(b => b.className = 'filter-btn');
+    if (tag === 'all')     btn.classList.add('active-all');
+    else if (tag === 'GTO이론') btn.classList.add('active-gto');
+    else if (tag === '봇연구')  btn.classList.add('active-bot');
+    else if (tag === '알고리즘') btn.classList.add('active-algo');
+
+    document.querySelectorAll('.event').forEach(ev => {
+      if (tag === 'all') {
+        ev.classList.remove('hidden');
+      } else {
+        const tags = ev.getAttribute('data-tags').split(',');
+        if (tags.includes(tag)) { ev.classList.remove('hidden'); }
+        else { ev.classList.add('hidden'); ev.classList.remove('open'); }
+      }
+    });
+  }
+</script>
+</body>
+</html>
